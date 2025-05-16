@@ -1,3 +1,4 @@
+// /Users/user/stm/stm-frontend/src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -23,7 +24,7 @@ const About = () => (
   <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex flex-col items-center justify-center">
     <h1 className="text-4xl font-bold">About SolStream</h1>
     <p className="text-lg mt-4 max-w-2xl text-center">
-      SolStream is a decentralized music streaming platform on Solana. Stay tuned for more details!
+      SolStream is a music streaming platform. Connect your wallet, upload, play, like, and share songs!
     </p>
     <a href="/" className="mt-6 bg-gradient-to-r from-purple-500 to-blue-500 px-4 py-2 rounded-lg">
       Back to Home
@@ -34,11 +35,11 @@ const About = () => (
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <ErrorBoundary>
-    <FavoritesProvider>
-      <Router>
-        <ConnectionProvider endpoint={network}>
-          <WalletProvider wallets={wallets} autoConnect>
-            <WalletModalProvider>
+    <ConnectionProvider endpoint={network}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <FavoritesProvider>
+            <Router>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/app" element={<App />}>
@@ -51,10 +52,10 @@ root.render(
                 <Route path="/about" element={<About />} />
                 <Route path="*" element={<Navigate to="/app" />} />
               </Routes>
-            </WalletModalProvider>
-          </WalletProvider>
-        </ConnectionProvider>
-      </Router>
-    </FavoritesProvider>
+            </Router>
+          </FavoritesProvider>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   </ErrorBoundary>
 );

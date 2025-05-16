@@ -1,65 +1,99 @@
-import { useState, useContext, createContext } from 'react';
+import { useState, useContext, createContext, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, web3 } from '@project-serum/anchor';
-import idl from '../assets/solstream_contract.json';
+import { getUser, saveUser } from '../utils/storage';
 
 const FavoritesContext = createContext();
 
 export function FavoritesProvider({ children }) {
   const [favorites, setFavorites] = useState([]);
   const [fanPoints, setFanPoints] = useState(0);
-  const wallet = useWallet();
-  const programId = new web3.PublicKey('9xoW3QTr4BjtJmGq2QN5mMyg96NP5TrVuZQZHbvkAVVi');
+  const [likedSongs, setLikedSongs] = useState([]);
+  const { publicKey } = useWallet();
+  const userId = publicKey ? publicKey.toString() : null;
 
-  const getProvider = () => {
-    const connection = new web3.Connection(web3.clusterApiUrl('devnet'), 'confirmed');
-    return new AnchorProvider(connection, wallet, {});
+  const fetchUserData = () => {
+    if (!userId) return;
+    const user = getUser(userId);
+    setFavorites(user.favorites || []);
+    setFanPoints(user.points || 0);
+    setLikedSongs(user.likedSongs || []);
   };
 
-  const fetchFavorites = async () => {
-    if (!wallet.publicKey) return;
-    const provider = getProvider();
-    const program = new Program(idl, programId, provider);
-    try {
-      const [fanPda] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from('fan'), wallet.publicKey.toBuffer()],
-        programId
-      );
-      const fanAccount = await program.account.fan.fetch(fanPda);
-      setFavorites(fanAccount.liked_tracks.map((key) => key.toString()));
-    } catch (err) {
-      console.error('Error fetching favorites:', err);
+  useEffect(() => {
+    fetchUserData();
+  }, [userId]);
+
+  const saveUserData = (updates) => {
+    if (!userId) return;
+    const user = getUser(userId);
+    saveUser(userId, { ...user, ...updates });
+    fetchUserData();
+  };
+
+  const addFavorite = (songId) => {
+    if (!userId) {
+      alert('Please connect your wallet');
+      return;
+    }
+    saveUserData({ favorites: [...new Set([...favorites, songId])] });
+  };
+
+  const removeFavorite = (songId) => {
+    if (!userId) {
+      alert('Please connect your wallet');
+      return;
+    }
+    saveUserData({ favorites: favorites.filter((id) => id !== songId) });
+  };
+
+  const likeSong = (songId) => {
+    if (!userId) {
+      alert('Please connect your wallet');
+      return;
+    }
+    if (!likedSongs.includes(songId)) {
+      saveUserData({
+        likedSongs: [...likedSongs, songId],
+        points: fanPoints + 5,
+      });
     }
   };
 
-  const fetchFanProfile = async () => {
-    if (!wallet.publicKey) return;
-    const provider = getProvider();
-    const program = new Program(idl, programId, provider);
-    try {
-      const [fanPda] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from('fan'), wallet.publicKey.toBuffer()],
-        programId
-      );
-      const fanAccount = await program.account.fan.fetch(fanPda);
-      setFanPoints(fanAccount.points.toNumber());
-    } catch (err) {
-      console.error('Error fetching fan profile:', err);
+  const unlikeSong = (songId) => {
+    if (!userId) {
+      alert('Please connect your wallet');
+      return;
+    }
+    if (likedSongs.includes(songId)) {
+      saveUserData({
+        likedSongs: likedSongs.filter((id) => id !== songId),
+        points: Math.max(0, fanPoints - 5),
+      });
     }
   };
 
-  const addFavorite = async (trackId) => {
-    if (!wallet.publicKey) return;
-    setFavorites((prev) => [...new Set([...prev, trackId])]);
-  };
-
-  const removeFavorite = async (trackId) => {
-    if (!wallet.publicKey) return;
-    setFavorites((prev) => prev.filter((id) => id !== trackId));
+  const addPoints = (points) => {
+    if (!userId) {
+      alert('Please connect your wallet');
+      return;
+    }
+    saveUserData({ points: fanPoints + points });
   };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, fetchFavorites, fanPoints, fetchFanProfile }}>
+    <FavoritesContext.Provider
+      value={{
+        favorites,
+        addFavorite,
+        removeFavorite,
+        fanPoints,
+        likedSongs,
+        likeSong,
+        unlikeSong,
+        addPoints,
+        fetchUserData,
+      }}
+    >
       {children}
     </FavoritesContext.Provider>
   );

@@ -1,97 +1,74 @@
+// /Users/user/stm/stm-frontend/src/components/ArtistPage.jsx
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, web3 } from '@project-serum/anchor';
-import idl from '../assets/solstream_contract.json';
 import { PlayIcon } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
+import { Howl } from 'howler';
+import { getSongs, addSong } from '../utils/storage';
 
 export default function ArtistPage() {
   const { artistId } = useParams();
   const { publicKey } = useWallet();
   const [tracks, setTracks] = useState([]);
-  const [trackId, setTrackId] = useState('');
+  const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
+  const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [analytics, setAnalytics] = useState({ streams: 0, likes: 0, shares: 0 });
-  const programId = new web3.PublicKey('9xoW3QTr4BjtJmGq2QN5mMyg96NP5TrVuZQZHbvkAVVi');
-
-  const getProvider = () => {
-    const connection = new web3.Connection(web3.clusterApiUrl('devnet'), 'confirmed');
-    return new AnchorProvider(connection, { publicKey }, {});
-  };
+  const [currentSound, setCurrentSound] = useState(null);
 
   useEffect(() => {
-    const fetchTracks = async () => {
-      if (!publicKey) return;
-      const provider = getProvider();
-      const program = new Program(idl, programId, provider);
-      try {
-        const trackAccounts = await program.account.track.all();
-        const artistTracks = trackAccounts.map((account) => ({
-          id: account.publicKey.toString(),
-          track_id: account.account.track_id,
-          price: account.account.price.toNumber(),
-          likes: account.account.likes.toNumber(),
-          shares: account.account.shares.toNumber(),
-        }));
-        setTracks(artistTracks);
-        setAnalytics({
-          streams: artistTracks.reduce((sum) => sum + 0, 0), // Placeholder
-          likes: artistTracks.reduce((sum, track) => sum + track.likes, 0),
-          shares: artistTracks.reduce((sum, track) => sum + track.shares, 0),
-        });
-      } catch (err) {
-        console.error('Error fetching tracks:', err);
-      }
-    };
-    fetchTracks();
-  }, [publicKey]);
+    const allTracks = getSongs();
+    const artistTracks = allTracks.filter((track) => track.artist === artistId);
+    setTracks(artistTracks);
+    setAnalytics({
+      streams: artistTracks.reduce((sum) => sum + 0, 0), // Placeholder
+      likes: artistTracks.reduce((sum, track) => sum + track.likes, 0),
+      shares: artistTracks.reduce((sum, track) => sum + track.shares, 0),
+    });
+  }, [artistId]);
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
   const handleUpload = async () => {
     if (!publicKey) {
       alert('Please connect your wallet');
       return;
     }
-    if (!trackId || !price) {
-      alert('Please enter track ID and price');
+    if (!title || !price || !file) {
+      alert('Please provide title, price, and audio file');
+      return;
+    }
+    if (artistId !== publicKey.toString()) {
+      alert('Wallet does not match artist ID');
       return;
     }
 
     setUploading(true);
     try {
-      const provider = getProvider();
-      const program = new Program(idl, programId, provider);
-      const [trackPda] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from('track'), publicKey.toBuffer(), Buffer.from(trackId)],
-        programId
-      );
-
-      await program.methods
-        .uploadTrack(trackId, parseInt(price))
-        .accounts({
-          track: trackPda,
-          user: publicKey,
-          systemProgram: web3.SystemProgram.programId,
-        })
-        .rpc();
-
-      const newTrack = {
-        id: trackPda.toString(),
-        track_id: trackId,
-        price: parseInt(price),
-        likes: 0,
-        shares: 0,
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const url = e.target.result;
+        const newTrack = {
+          id: Date.now().toString(),
+          title,
+          artist: artistId,
+          url,
+          price: parseInt(price),
+          likes: 0,
+          shares: 0,
+        };
+        addSong(newTrack);
+        setTracks([...tracks, newTrack]);
+        setTitle('');
+        setPrice('');
+        setFile(null);
+        alert('Track uploaded successfully!');
       };
-      setTracks([...tracks, newTrack]);
-      setAnalytics({
-        streams: analytics.streams,
-        likes: analytics.likes,
-        shares: analytics.shares,
-      });
-      setTrackId('');
-      setPrice('');
-      alert('Track uploaded successfully!');
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Upload error:', error);
       alert('Failed to upload track');
@@ -101,7 +78,19 @@ export default function ArtistPage() {
   };
 
   const handlePlay = (track) => {
-    alert(`Playing ${track.track_id}`);
+    if (!publicKey) {
+      alert('Please connect your wallet');
+      return;
+    }
+    if (currentSound) {
+      currentSound.stop();
+    }
+    const sound = new Howl({
+      src: [track.url],
+      html5: true,
+    });
+    sound.play();
+    setCurrentSound(sound);
   };
 
   return (
@@ -128,9 +117,9 @@ export default function ArtistPage() {
           <h2 className="text-xl font-bold mb-4">Upload New Track</h2>
           <input
             type="text"
-            placeholder="Track ID"
-            value={trackId}
-            onChange={(e) => setTrackId(e.target.value)}
+            placeholder="Track Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             className="w-full p-2 mb-4 bg-gray-700 rounded-lg text-white"
           />
           <input
@@ -138,6 +127,12 @@ export default function ArtistPage() {
             placeholder="Price (STM)"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
+            className="w-full p-2 mb-4 bg-gray-700 rounded-lg text-white"
+          />
+          <input
+            type="file"
+            accept="audio/mp3"
+            onChange={handleFileChange}
             className="w-full p-2 mb-4 bg-gray-700 rounded-lg text-white"
           />
           <button
@@ -154,7 +149,7 @@ export default function ArtistPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tracks.map((track) => (
           <motion.div key={track.id} className="card p-4" whileHover={{ scale: 1.05 }}>
-            <h3 className="text-lg font-bold">{track.track_id}</h3>
+            <h3 className="text-lg font-bold">{track.title}</h3>
             <p className="text-sm">Price: {track.price} STM | Likes: {track.likes} | Shares: {track.shares}</p>
             <div className="flex space-x-4 mt-4">
               <button

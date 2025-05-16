@@ -17,7 +17,7 @@ pub mod solstream_contract {
         Ok(())
     }
 
-    // Fan streams a track and makes a payment
+    // Fan streams a track and makes a payments
     pub fn stream_track(ctx: Context<StreamTrack>, track_id: String) -> Result<()> {
         let fan = &mut ctx.accounts.fan;
         let artist = &mut ctx.accounts.artist;

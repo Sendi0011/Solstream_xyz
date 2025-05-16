@@ -39,16 +39,24 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex flex-col">
       <nav className="flex justify-between items-center p-4 sm:p-6 glass w-full">
+        {/* Logo Side */}
         <div className="flex items-center">
-          <h1 className="text-lg sm:text-xl font-bold">SolStream</h1>
+          <span className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 text-transparent bg-clip-text drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] transform rotate-[-5deg] scale-110">
+            SolStream
+          </span>
         </div>
-        <Link
-          to="/app"
-          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 px-4 py-2 rounded-lg transition-all duration-300 text-sm sm:text-base"
-        >
-          Go to App
-        </Link>
+
+        {/* Action Side */}
+        <div>
+          <Link
+            to="/app"
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 px-4 py-2 rounded-lg transition-all duration-300 text-sm sm:text-base"
+          >
+            Go to App
+          </Link>
+        </div>
       </nav>
+
 
       <div
         className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8"

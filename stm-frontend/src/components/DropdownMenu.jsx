@@ -1,57 +1,52 @@
+// /Users/user/stm/stm-frontend/src/components/DropdownMenu.jsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import { Bars3Icon, HomeIcon, HeartIcon, QueueListIcon } from '@heroicons/react/24/solid';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Bars3Icon, UserIcon, MagnifyingGlassIcon, HeartIcon, QueueListIcon } from '@heroicons/react/24/solid';
 
 export default function DropdownMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { publicKey } = useWallet();
 
-  const artistId = publicKey ? publicKey.toBase58().slice(0, 8) : null;
-
   return (
     <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 bg-gray-700 rounded-lg focus:outline-none"
-      >
-        <Bars3Icon className="h-6 w-6 text-white" />
+      <button onClick={() => setIsOpen(!isOpen)} className="p-2">
+        <Bars3Icon className="h-6 w-6" />
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg z-10 glass">
-          <Link
-            to="/discover"
-            className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-700"
+        <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-lg shadow-lg">
+          <NavLink
+            to="/app/discover"
+            className="flex items-center space-x-2 p-4 hover:bg-gray-800 rounded-t-lg"
             onClick={() => setIsOpen(false)}
           >
-            <MagnifyingGlassIcon className="h-5 w-5" />
+            <HomeIcon className="h-5 w-5" />
             <span>Discover</span>
-          </Link>
-          <Link
-            to="/favorites"
-            className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-700"
+          </NavLink>
+          <NavLink
+            to="/app/favorites"
+            className="flex items-center space-x-2 p-4 hover:bg-gray-800"
             onClick={() => setIsOpen(false)}
           >
             <HeartIcon className="h-5 w-5" />
             <span>Favorites</span>
-          </Link>
-          <Link
-            to="/playlist"
-            className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-700"
+          </NavLink>
+          <NavLink
+            to="/app/playlist"
+            className="flex items-center space-x-2 p-4 hover:bg-gray-800"
             onClick={() => setIsOpen(false)}
           >
             <QueueListIcon className="h-5 w-5" />
             <span>Playlist</span>
-          </Link>
+          </NavLink>
           {publicKey && (
-            <Link
-              to={`/artist/${artistId}`}
-              className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-700"
+            <NavLink
+              to={`/app/artist/${publicKey.toString()}`}
+              className="flex items-center space-x-2 p-4 hover:bg-gray-800 rounded-b-lg"
               onClick={() => setIsOpen(false)}
             >
-              <UserIcon className="h-5 w-5" />
               <span>Artist Dashboard</span>
-            </Link>
+            </NavLink>
           )}
         </div>
       )}
